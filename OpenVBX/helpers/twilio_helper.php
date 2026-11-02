@@ -71,6 +71,45 @@ if (!function_exists('validate_rest_request')) {
 	}
 }
 
+if (!function_exists('require_twilio_signature')) {
+	/**
+	 * Halt the request unless it is signed by Twilio
+	 *
+	 * Logged-in admins are let through so "View TwiML" in the flow
+	 * editor keeps working. With `twilio_signature_mode` set to 'log'
+	 * failures are only logged.
+	 *
+	 * @return void
+	 */
+	function require_twilio_signature() {
+		$ci =& get_instance();
+		if (validate_rest_request())
+		{
+			return;
+		}
+
+		$user_id = $ci->session->userdata('user_id');
+		if ($ci->session->userdata('loggedin') && $ci->session->userdata('is_admin')
+			&& VBX_User::check_signature($user_id, $ci->session->userdata('signature')))
+		{
+			return;
+		}
+
+		log_message('error', 'Twilio signature validation failed for "'.$ci->uri->uri_string()
+					.'" from '.$ci->input->ip_address());
+
+		if ($ci->config->item('twilio_signature_mode') == 'log')
+		{
+			return;
+		}
+
+		set_status_header(403);
+		header('Content-Type: text/xml');
+		echo '<?xml version="1.0" encoding="UTF-8"?><Response><Hangup/></Response>';
+		exit;
+	}
+}
+
 if (!function_exists('clean_digits')) {
 	/**
 	 * Cleans Hash and Star characters from returned Digits

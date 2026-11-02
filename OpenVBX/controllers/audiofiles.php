@@ -243,16 +243,7 @@ class AudioFiles extends User_Controller
 
 	function prompt_for_recording_twiml()
 	{
-                if(!validate_rest_request()) {
-                        $response = new TwimlResponse;
-                        $response->say('Could not validate this request. Goodbye.', array(
-                                        'voice' => $ci->vbx_settings->get('voice', $ci->tenant->id),
-                                        'language' => $ci->vbx_settings->get('voice_language', $ci->tenant->id)
-                                ));
-                        $response->hangup();
-                        $response->respond();
-                        exit;
-                }
+		require_twilio_signature();
 
 		$response = new TwimlResponse;
 		$audioFile = VBX_Audio_File::get(array('recording_call_sid' => $this->input->get_post('CallSid')));
@@ -275,16 +266,7 @@ class AudioFiles extends User_Controller
 
 	function replay_recording_twiml()
 	{
-                if(!validate_rest_request()) {
-                        $response = new TwimlResponse;
-                        $response->say('Could not validate this request. Goodbye.', array(
-                                        'voice' => $ci->vbx_settings->get('voice', $ci->tenant->id),
-                                        'language' => $ci->vbx_settings->get('voice_language', $ci->tenant->id)
-                                ));
-                        $response->hangup();
-                        $response->respond();
-                        exit;
-                }
+		require_twilio_signature();
 
 		$response = new TwimlResponse;
 
@@ -312,16 +294,7 @@ class AudioFiles extends User_Controller
 
 	function accept_or_reject_recording_twiml()
 	{
-                if(!validate_rest_request()) {
-                        $response = new TwimlResponse;
-                        $response->say('Could not validate this request. Goodbye.', array(
-                                        'voice' => $ci->vbx_settings->get('voice', $ci->tenant->id),
-                                        'language' => $ci->vbx_settings->get('voice_language', $ci->tenant->id)
-                                ));
-                        $response->hangup();
-                        $response->respond();
-                        exit;
-                }
+		require_twilio_signature();
 
 		$response = new TwimlResponse;
 		$digits = clean_digits($this->input->get_post('Digits'));
@@ -360,7 +333,7 @@ class AudioFiles extends User_Controller
 	{
 		_deprecated_method(__METHOD__, '1.0.4');
 		
-		validate_rest_request();
+		require_twilio_signature();
 		
 		$response = new TwimlResponse;
 		$response->hangup();

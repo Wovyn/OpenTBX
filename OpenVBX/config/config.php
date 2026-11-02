@@ -2,11 +2,32 @@
 
 /*
 |--------------------------------------------------------------------------
+| Deployment-specific settings
+|--------------------------------------------------------------------------
+|
+| Values that differ per server (server name, encryption key) belong in
+| config-local.php, which is git-ignored. Copy config-local-sample.php to
+| get started. Never commit those values to this file.
+|
+*/
+if (is_file(dirname(__FILE__).'/config-local.php'))
+{
+	include(dirname(__FILE__).'/config-local.php');
+}
+
+/*
+|--------------------------------------------------------------------------
 | Server Name
 |--------------------------------------------------------------------------
+|
+| Set this in config-local.php. Falling back to the Host header lets a
+| client influence generated URLs (e.g. password reset links).
+|
 */
-// @TODO: xss protection
-$config['server_name'] = 'hello.wi.rentals';
+if (empty($config['server_name']))
+{
+	$config['server_name'] = $_SERVER['HTTP_HOST'];
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -326,8 +347,15 @@ $config['cache_path'] = '';
 | If you use the Encryption class or the Sessions class with encryption
 | enabled you MUST set an encryption key.  See the user guide for info.
 |
+| Session cookies are signed with this key, so it must be secret. Set it in
+| config-local.php. If left empty, MY_Controller derives one from the
+| install salt in openvbx.php.
+|
 */
-$config['encryption_key'] = 'd2007a4a8d029b2bcad3188cc7907fec1a170f3e4a6865bb2ef3a7aafb28a2a6';
+if (!isset($config['encryption_key']))
+{
+	$config['encryption_key'] = '';
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -360,8 +388,30 @@ $config['sess_time_to_update'] 	= 300;
 |
 */
 $config['cookie_prefix']	= '';
-$config['cookie_domain']	= 'hello.wi.rentals';
-$config['cookie_path']		= '/';
+$config['cookie_domain']	= parse_url($config['base_url'], PHP_URL_HOST);
+$config['cookie_path']		= WEB_ROOT;
+if(empty($config['cookie_path']))
+{
+	$config['cookie_path'] = '/';
+}
+
+/*
+|--------------------------------------------------------------------------
+| Twilio Request Signatures
+|--------------------------------------------------------------------------
+|
+| Every request to a Twilio-facing endpoint (twiml/*, audiofiles recording
+| callbacks) must carry a valid X-Twilio-Signature.
+|
+| 'enforce' = reject unsigned/invalid requests with a 403
+| 'log'     = accept them but log the failure; use briefly when first
+|             rolling out to confirm legitimate traffic validates
+|
+*/
+if (empty($config['twilio_signature_mode']))
+{
+	$config['twilio_signature_mode'] = 'enforce';
+}
 
 /*
 |--------------------------------------------------------------------------

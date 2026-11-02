@@ -37,7 +37,8 @@ class VBX_Rest_access extends MY_Model
 	{
 		$ci =& get_instance();
 
-		$key = md5(rand(10000, 99999).date('mdyhisj'));
+		// 128 random bits, hex-encoded to fit the 32-char column
+		$key = bin2hex(openssl_random_pseudo_bytes(16));
 		$ci->db
 			->set('created', 'UTC_TIMESTAMP()', false)
 			->set('`key`', $key)
