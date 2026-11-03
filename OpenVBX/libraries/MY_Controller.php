@@ -87,6 +87,13 @@ class MY_Controller extends Controller
 		$this->load->model('vbx_plugin_store');
 		$this->load->helper('file');
 		$this->load->helper('twilio');
+
+		// Session cookies are only as safe as this key; never run with an empty one
+		if ($this->config->item('encryption_key') == '')
+		{
+			$this->config->set_item('encryption_key',
+				hash('sha256', 'openvbx-session|'.$this->config->item('salt')));
+		}
 		$this->load->library('session');
 		
 		$this->settings = new VBX_Settings();

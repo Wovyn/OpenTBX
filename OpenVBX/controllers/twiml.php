@@ -48,6 +48,9 @@ class Twiml extends MY_Controller {
 		
 		parent::__construct();
 
+		// Every endpoint here is a Twilio webhook
+		require_twilio_signature();
+
 		$this->load->helper('cookie');
 
 		$this->load->library('applet');
@@ -74,13 +77,6 @@ class Twiml extends MY_Controller {
 
 	function start_sms($flow_id)
 	{
-                if(!validate_rest_request()) {
-                        $response = new TwimlResponse;
-                        $response->message('Could not validate this request. Goodbye.');
-                        $response->respond();
-                        exit;
-                }
-
 		log_message("info", "Calling SMS Flow $flow_id");
 		$body = $this->input->get_post('Body');
 		$this->flow_type = 'sms';
@@ -109,17 +105,6 @@ class Twiml extends MY_Controller {
 
 	function start_voice($flow_id)
 	{
-		if(!validate_rest_request()) {
-			$response = new TwimlResponse;
-			$response->say('Could not validate this request. Goodbye.', array(
-					'voice' => $ci->vbx_settings->get('voice', $ci->tenant->id),
-					'language' => $ci->vbx_settings->get('voice_language', $ci->tenant->id)
-				));
-			$response->hangup();
-			$response->respond();
-			exit;
-		}
-
 		log_message("info", "Calling Voice Flow $flow_id");
 		$this->flow_type = 'voice';
 
@@ -271,7 +256,9 @@ class Twiml extends MY_Controller {
 		}
 		catch(Exception $ex)
 		{
-			$this->response->say('Error: ' . $ex->getMessage(), $this->say_params);
+			// don't read internals out to the caller
+			log_message('error', 'Applet error in flow '.$flow_id.': '.$ex->getMessage());
+			$this->response->say('Sorry, an error occurred. Goodbye.', $this->say_params);
 			$this->response->respond();
 		}
 	}
@@ -331,8 +318,6 @@ class Twiml extends MY_Controller {
 	 */
 	public function dial()
 	{
-		validate_rest_request();
-
 		$rest_access = $this->input->get_post('rest_access');
 		$to = $this->input->get_post('to');
 		$conference_name = $this->input->get_post('conference_name');

@@ -77,29 +77,29 @@ class Connect extends MY_Controller
 	{
 		$header = '405'; // method not allowed
 
-		if (OpenVBX::validateRequest() || 1 == 1) // currently bypassing authorization until signatures are correct
-		{ 
-			if ($account_sid = $this->input->post('AccountSid')) 
+		// Rejects (403) forged requests that would deactivate a tenant
+		require_twilio_signature();
+
+		if ($account_sid = $this->input->post('AccountSid'))
+		{
+			$header = '400'; // sid not found so its a bad request
+
+			$result = $this->db->select('tenants.*')
+								->from('tenants')
+								->join('settings', 'tenants.id = settings.tenant_id')
+								->where('settings.name = "twilio_sid"')
+								->where('settings.value = "'.$this->db->escape_str($account_sid).'"')
+								->limit(1)
+								->get()->result();
+		
+			if (!empty($result)) 
 			{
-				$result = $this->db->select('tenants.*')
-									->from('tenants')
-									->join('settings', 'tenants.id = settings.tenant_id')
-									->where('settings.name = "twilio_sid"')
-									->where('settings.value = "'.$this->db->escape_str($account_sid).'"')
-									->limit(1)
-									->get()->result();
-			
-				if (!empty($result)) 
-				{
-					$tenant = current($result);
-					if ($tenant->id) {
-						log_message('info', 'AccountSid "'.$account_sid.'" deauthorized on '.date('r').' (server tz: '.date_default_timezone_get().')');
-						$this->setup_connect_tenant('deauthorized_client', $tenant->id);
-						$header = '204'; // accepted, but no content to return
-					}
+				$tenant = current($result);
+				if ($tenant->id) {
+					log_message('info', 'AccountSid "'.$account_sid.'" deauthorized on '.date('r').' (server tz: '.date_default_timezone_get().')');
+					$this->setup_connect_tenant('deauthorized_client', $tenant->id);
+					$header = '204'; // accepted, but no content to return
 				}
-				
-				$header = '400'; // sid not found so its a bad request
 			}
 		}
 		

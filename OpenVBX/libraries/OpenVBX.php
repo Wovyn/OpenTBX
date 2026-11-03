@@ -455,25 +455,22 @@ class OpenVBX {
 			$url = site_url($url);
 		}
 		
-		// without rewrite enabled we need to ensure that the query string
-		// is properly appended to the url when being reconstructed
-		if ($ci->vbx_settings->get('rewrite_enabled', VBX_PARENT_TENANT) < 1 &&
-			!empty($_SERVER['QUERY_STRING']) && strpos($url, $_SERVER['QUERY_STRING']) === false)
+		// Twilio signs the exact url it requested, so re-attach the original
+		// query string byte-for-byte (re-encoding it can change the signature).
+		// The rewrite rules prepend `vbxsite=<path>`, which Twilio never saw.
+		if (!empty($_SERVER['QUERY_STRING']) && strpos($url, '?') === false)
 		{
-			parse_str($_SERVER['QUERY_STRING'], $qs);
-			
-			// make sure that the rewrite var doesn't stay in the query 
-			// string if we're not doing rewriting
-			if ($ci->vbx_settings->get('rewrite_enabled', VBX_PARENT_TENANT) < 1) {
-				foreach ($qs as $name => $value) {
-					if ($name == 'vbxsite') {
-						unset($qs[$name]);
-					}
+			$qs = array();
+			foreach (explode('&', $_SERVER['QUERY_STRING']) as $pair)
+			{
+				if ($pair !== '' && strpos($pair, 'vbxsite=') !== 0)
+				{
+					$qs[] = $pair;
 				}
 			}
-			
+
 			if (!empty($qs)) {
-				$url .= '?' . http_build_query($qs);
+				$url .= '?' . implode('&', $qs);
 			}
 		}
 	
